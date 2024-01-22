@@ -4,6 +4,8 @@
   "description": "PrismScript is a programing language that compiles to python but has syntax similar to c/c++",
   "repository": {"url": "https://github.com/osias-dev/PrismScript", "type": "github"},
   "icon": "icons/prismscript-fill.png",
+  "author": "klesti",
+  "publisher": "klesti",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.85.0"

@@ -1,5 +1,5 @@
-import re
 import os
+import re
 # import jedi
 
 keywords = [
@@ -21,10 +21,7 @@ typeKeyWords = [
     'dict'
 ]
 
-endCode = """
-if __name__=="__main__":
-    main()
-"""
+endCode = """"""
 
 class PrismScriptError:
     def __init__(self, message, extra_info):
@@ -63,7 +60,8 @@ def remove_brackets(input_str) -> str:
     result = ''
     inside_string = False
     is_var = 0
-    is_json = False
+    is_json = 0
+    inside_c = 0
     comment = False
     igi = 0
     for i in range(len(input_str)):
@@ -74,38 +72,48 @@ def remove_brackets(input_str) -> str:
                 is_var += 1
             elif not comment and char == '"' or char == "'":
                 if is_var and inside_string and not is_json:
-                    if input_str[i+1]+input_str[i+2]+input_str[i+3] in ['"""', "'''"]:
-                        igi=3
+                    try:
+                        if input_str[i+1]+input_str[i+2]+input_str[i+3] in ['"""', "'''"]:
+                            igi=3
+                    except IndexError:
+                        pass
                     is_var -= 1
                 inside_string = not inside_string
                 result += char
-            elif not comment and not is_json and not inside_string and not is_var and char == '{':
+            elif not inside_c and not comment and not is_json and not inside_string and not is_var and char == '{':
                 continue
-            elif not comment and not is_json and not inside_string and not is_var and char == '}':
+            elif not inside_c and not comment and not is_json and not inside_string and not is_var and char == '}':
                 igi = countSpc(input_str[i+1:])
                 continue
+            elif not comment and char=='(' and not inside_string:
+                result += char
+                inside_c += 1
+            elif not comment and char==')' and not inside_string:
+                result += char
+                inside_c -= 1
             elif not comment and is_var and char=='{' and not inside_string:
                 result += char
-                is_json = True
+                is_json += 1
             elif not comment and is_var and char=='[' and not inside_string:
                 result += char
-                is_json = True
+                is_json += 1
             elif not comment and is_json and is_var and char=='}' and not inside_string:
                 result += char
                 is_var = 0
-                is_json = False
+                is_json -= 1
             elif not comment and is_json and is_var and char==']' and not inside_string:
                 result += char
                 is_var = 0
-                is_json = False
+                is_json -= 1
             elif not comment and char==';' and not inside_string and not is_json:
                 inside_string = False
                 is_var = 0
                 is_json = False
                 igi = 0
                 result += char
-            elif char=='/' and input_str[i+1]=='/' and not comment and not inside_string:
+            elif char=='/' and input_str[i+1]=='/' and not inside_c and not comment and not inside_string:
                 comment = True
+                result+='#'
                 igi = 1
             elif char==':' and input_str[i+1]==':' and not comment and not inside_string:
                 result+='.'
@@ -224,7 +232,7 @@ def compile(code):
             tokenOut.append(tkn)
     outputCode = '\n'.join(tokenOut).strip()
     # script = jedi.Script(outputCode)
-    return [outputCode+endCode, psModules]
+    return [outputCode, psModules]
     # else:
         # return (PrismScriptError, "function 'main' or 'module' does not exist")
 
@@ -235,6 +243,7 @@ def run(filename, out):
         output, modules = compile(f.read())
         with open(os.path.join(out, str(filename).removesuffix('.ps')+'.py'), 'w')as fout:
             fout.write(output)
+
 if __name__=='__main__':
     for i in os.listdir('.'):
         if i.endswith('.ps'):

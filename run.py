@@ -67,7 +67,7 @@ def remove_brackets(input_str) -> str:
     for i in range(len(input_str)):
         char = input_str[i]
         if igi==0:
-            if not comment and char == '=' and not inside_string:
+            if not comment and char == '=' and not inside_string and not inside_c:
                 result += char
                 is_var = not is_var
             elif not comment and char == '"' or char == "'":

@@ -2,7 +2,7 @@
 	"name": "prismscript-server",
 	"description": "the server for the lsp of prismscript",
 	"version": "1.0.0",
-	"author": "Microsoft Corporation",
+	"author": "Osias",
 	"license": "MIT",
 	"engines": {
 		"node": "*"

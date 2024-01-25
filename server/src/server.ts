@@ -140,9 +140,7 @@ documents.onDidClose((e) => {
 // when the text document first opened or when its content has changed.
 
 documents.onDidChangeContent((change) => {
-  setTimeout(() => {
-    validateTextDocument(change.document);
-  }, 100);
+  validateTextDocument(change.document);
 });
 
 var envDir = join(dirname(dirname(__dirname)), "compiler", "venv");
@@ -206,7 +204,7 @@ gdir();
 const compilerProceess = spawn(pyDir, [compileDir], {
   stdio: ["pipe", "pipe", "pipe"],
 });
-const jediProceess = spawn(pyDir, [autocompleteDir], {
+var jediProceess = spawn(pyDir, [autocompleteDir], {
   stdio: ["pipe", "pipe", "pipe"],
 });
 compilerProceess.stderr.on("data", (data) => {
@@ -236,8 +234,35 @@ function getCompletions(code: string, ln: number, col: number): Promise<any> {
   });
 }
 
+var workspaceFolder = "";
+
+setInterval(() => {
+  let psconfigPath = join(workspaceFolder, "psconfig.json");
+  if (existsSync(psconfigPath)) {
+    try {
+      let data = JSON.parse(readFileSync(psconfigPath).toString());
+      if (data) {
+        if (data.env && data.env !== envDir) {
+          envDir = join(workspaceFolder, data.env);
+          gdir();
+          exec(`${pipDir} show jedi`, (err, stdout, stderr) => {
+            if (err) {
+              exec(`${pipDir} install jedi`, (err, stdout, stderr) => {});
+            }
+          });
+          jediProceess.kill();
+          jediProceess = spawn(pyDir, [autocompleteDir], {
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+        }
+      }
+    } catch {}
+  }
+}, 3000);
+
 function compile(codeIn: string): Promise<compileOutType> {
-  compilerProceess.stdin.write(codeIn.trim().replace("\n", "\\n") + "\n");
+  // console.log(codeIn.replace("\n", "\\n"));
+  compilerProceess.stdin.write(codeIn.replace("\n", "\\n") + "\n");
   return new Promise((resolve) => {
     compilerProceess.stdout.once("data", (data) => {
       let x = data.toString().trim(" ").split("\n");
@@ -271,7 +296,6 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   let pyCode = "";
   let tempFilePath;
   [problems, pyCode] = await compile(text);
-  [tempFilePath, problems] = await checkCode(pyCode);
   // unlinkSync(tempFilePath);
   const diagnostics: Diagnostic[] = [];
   for (
@@ -348,11 +372,18 @@ connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
 });
 
 connection.onInitialize((params: InitializeParams): InitializeResult => {
+  if (params.workspaceFolders) {
+    let wkpath = params.workspaceFolders[0].uri;
+    if (params.workspaceFolders[0].uri.startsWith("file://")) {
+      wkpath = params.workspaceFolders[0].uri.substring(7);
+    }
+    workspaceFolder = wkpath;
+  }
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
       completionProvider: {
-        triggerCharacters: [".", "#"],
+        triggerCharacters: [".", "#", ":", ":"],
       },
     },
   };

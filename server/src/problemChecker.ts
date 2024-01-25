@@ -1,6 +1,5 @@
-import { execSync, exec } from "child_process";
-import { dir } from "console";
-import { writeFileSync, unlinkSync } from "fs";
+import { exec } from "child_process";
+import { writeFileSync } from "fs";
 import { dirname, join } from "path";
 
 // let id = Math.floor(Math.random() * 1000);

@@ -1,1 +1,1 @@
-import json;
+def main():

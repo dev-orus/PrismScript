@@ -4,6 +4,7 @@
 	"author": "Osias",
 	"license": "MIT",
 	"version": "1.0.0",
+	"icon": "icons.png",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/Microsoft/vscode-extension-samples"

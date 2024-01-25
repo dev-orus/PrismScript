@@ -27,6 +27,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { existsSync, readFileSync, write } from "fs";
 import { exec, execSync, spawn } from "child_process";
 import { dirname, join } from "path";
+import { TIMEOUT } from 'dns';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -296,6 +297,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   let pyCode = "";
   let tempFilePath;
   [problems, pyCode] = await compile(text);
+  // [tempFilePath, problems] = await checkCode(pyCode);
   // unlinkSync(tempFilePath);
   const diagnostics: Diagnostic[] = [];
   for (

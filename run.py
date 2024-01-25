@@ -59,7 +59,7 @@ def getFuncCall(input_string:str):
 def remove_brackets(input_str) -> str:
     result = ''
     inside_string = False
-    is_var = 0
+    is_var = False
     is_json = 0
     inside_c = 0
     comment = False
@@ -69,7 +69,7 @@ def remove_brackets(input_str) -> str:
         if igi==0:
             if not comment and char == '=' and not inside_string:
                 result += char
-                is_var += 1
+                is_var = not is_var
             elif not comment and char == '"' or char == "'":
                 if is_var and inside_string and not is_json:
                     try:
@@ -99,15 +99,13 @@ def remove_brackets(input_str) -> str:
                 is_json += 1
             elif not comment and is_json and is_var and char=='}' and not inside_string:
                 result += char
-                is_var = 0
                 is_json -= 1
             elif not comment and is_json and is_var and char==']' and not inside_string:
                 result += char
-                is_var = 0
                 is_json -= 1
             elif not comment and char==';' and not inside_string and not is_json:
                 inside_string = False
-                is_var = 0
+                is_var = False
                 is_json = False
                 igi = 0
                 result += char

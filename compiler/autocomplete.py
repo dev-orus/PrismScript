@@ -9,7 +9,7 @@ import json
 import compiler_prismscript
 
 parent = os.path.join(os.path.dirname(__file__), 'python')
-if os.path.exists(parent):
+if not os.path.exists(parent):
     os.mkdir(parent)
 
 while True:

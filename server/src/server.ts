@@ -296,7 +296,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   };
   let pyCode = "";
   let tempFilePath;
-  [problems, pyCode] = await compile(text);
+  // [problems, pyCode] = await compile(text);
   // [tempFilePath, problems] = await checkCode(pyCode);
   // unlinkSync(tempFilePath);
   const diagnostics: Diagnostic[] = [];

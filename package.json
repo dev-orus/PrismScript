@@ -2,11 +2,14 @@
   "name": "prismscript-syntax",
   "displayName": "PrismScript-syntax",
   "description": "PrismScript is a programing language that compiles to python but has syntax similar to c/c++",
-  "repository": {"url": "https://github.com/osias-dev/PrismScript", "type": "github"},
+  "repository": {
+    "url": "https://github.com/osias-dev/PrismScript",
+    "type": "github"
+  },
   "icon": "icons/prismscript-fill.png",
   "author": "klesti",
   "publisher": "klesti",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -14,20 +17,35 @@
     "Programming Languages"
   ],
   "contributes": {
-    "languages": [{
-      "id": "prismscript",
-      "icon": {
-        "light": "./icons/prismscript.svg",
-        "dark": "./icons/prismscript.svg"
-      },
-      "aliases": ["PrismScript", "prismscript"],
-      "extensions": [".ps"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "prismscript",
-      "scopeName": "source.prismscript",
-      "path": "./syntaxes/prismscript.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "prismscript",
+        "icon": {
+          "light": "./icons/prismscript.svg",
+          "dark": "./icons/prismscript.svg"
+        },
+        "aliases": [
+          "PrismScript",
+          "prismscript"
+        ],
+        "extensions": [
+          ".ps"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "prismscript",
+        "scopeName": "source.prismscript",
+        "path": "./syntaxes/prismscript.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "devDependencies": {
+    "vscode-test": "^1.6.1"
   }
 }

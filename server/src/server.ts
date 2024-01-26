@@ -221,7 +221,7 @@ type compileOutType = [errList, string];
 
 function getCompletions(code: string, ln: number, col: number): Promise<any> {
   jediProceess.stdin.write(
-    JSON.stringify({ source: code.trim(), line: ln, column: col }) + "\n"
+    JSON.stringify({ source: code.trim(), line: ln, column: col, dir: workspaceFolder }) + "\n"
   );
   return new Promise((resolve) => {
     jediProceess.stdout.once("data", (data) => {

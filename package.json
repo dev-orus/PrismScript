@@ -3,7 +3,7 @@
 	"description": "The PrismScript language server",
 	"author": "Osias",
 	"license": "MIT",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"icon": "icon.png",
 	"repository": {
 		"type": "git",

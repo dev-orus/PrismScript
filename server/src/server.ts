@@ -27,7 +27,11 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { existsSync, readFileSync, write } from "fs";
 import { exec, execSync, spawn } from "child_process";
 import { dirname, join } from "path";
-import { TIMEOUT } from 'dns';
+import { TIMEOUT } from "dns";
+import { io } from "socket.io-client";
+import { killPortProcess } from "kill-port-process";
+
+killPortProcess(6921);
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -89,53 +93,19 @@ connection.onInitialized(() => {
   }
 });
 
-// The example settings
-interface ExampleSettings {
-  maxNumberOfProblems: number;
-}
-
-// The global settings, used when the `workspace/configuration` request is not supported by the client.
-// Please note that this is not the case when using this server with the client provided in this example
-// but could happen with other clients.
-const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
-let globalSettings: ExampleSettings = defaultSettings;
-
-// Cache the settings of all open documents
-const documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
+var defaultSettings = {};
+var globalSettings = {};
 
 connection.onDidChangeConfiguration((change) => {
   if (hasConfigurationCapability) {
-    // Reset all cached document settings
-    documentSettings.clear();
   } else {
-    globalSettings = <ExampleSettings>(
-      (change.settings.languageServerExample || defaultSettings)
-    );
+    globalSettings = change.settings.PrismScript || defaultSettings;
   }
 
   // Revalidate all open text documents
   documents.all().forEach(validateTextDocument);
 });
-
-function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
-  if (!hasConfigurationCapability) {
-    return Promise.resolve(globalSettings);
-  }
-  let result = documentSettings.get(resource);
-  if (!result) {
-    result = connection.workspace.getConfiguration({
-      scopeUri: resource,
-      section: "languageServerExample",
-    });
-    documentSettings.set(resource, result);
-  }
-  return result;
-}
-
-// Only keep settings for open documents
-documents.onDidClose((e) => {
-  documentSettings.delete(e.document.uri);
-});
+documents.onDidClose((e) => {});
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
@@ -202,38 +172,56 @@ if (!existsSync(envDir)) {
 
 gdir();
 
-const compilerProceess = spawn(pyDir, [compileDir], {
-  stdio: ["pipe", "pipe", "pipe"],
-});
+// const compilerProceess = spawn(pyDir, [compileDir], {
+// stdio: ["pipe", "pipe", "pipe"],
+// });
 var jediProceess = spawn(pyDir, [autocompleteDir], {
   stdio: ["pipe", "pipe", "pipe"],
 });
-compilerProceess.stderr.on("data", (data) => {
-  console.error(`Error from Python-PrismScript Compiler: ${data.toString()}`);
-});
+// compilerProceess.stderr.on("data", (data) => {
+// console.error(`Error from Python-PrismScript Compiler: ${data.toString()}`);
+// });
 jediProceess.stderr.on("data", (data) => {
   console.error(`Error from Python-PrismScript Jedi: ${data.toString()}`);
 });
-compilerProceess.on("close", (c) => {});
+jediProceess.stdout.on("data", (data) => {
+  console.log(`Stdout from Python-PrismScript Jedi: ${data.toString()}`);
+});
+// compilerProceess.on("close", (c) => {});
 jediProceess.on("close", (c) => {});
+
+const jediSocket = io("http://127.0.0.1:6921");
 
 type compileOutType = [errList, string];
 
+type completionOutType = {
+  type: string;
+  doc: string;
+};
+
 function getCompletions(code: string, ln: number, col: number): Promise<any> {
-  jediProceess.stdin.write(
-    JSON.stringify({ source: code.trim(), line: ln, column: col, dir: workspaceFolder }) + "\n"
-  );
+  let src = JSON.stringify({
+    source: code.trim(),
+    line: ln,
+    column: col,
+    dir: workspaceFolder,
+  });
+  jediSocket.emit("ac", src);
   return new Promise((resolve) => {
-    jediProceess.stdout.once("data", (data) => {
+    jediSocket.once("msg", (data) => {
       try {
-        resolve(JSON.parse(data.toString()));
+        resolve(JSON.parse(data));
       } catch (e) {
-        console.error(e);
+        console.error("ec", e);
         resolve({});
       }
     });
   });
 }
+
+connection.onExit(() => {
+  jediProceess.emit("close");
+});
 
 var workspaceFolder = "";
 
@@ -261,32 +249,31 @@ setInterval(() => {
   }
 }, 3000);
 
-function compile(codeIn: string): Promise<compileOutType> {
-  // console.log(codeIn.replace("\n", "\\n"));
-  compilerProceess.stdin.write(codeIn.replace("\n", "\\n") + "\n");
-  return new Promise((resolve) => {
-    compilerProceess.stdout.once("data", (data) => {
-      let x = data.toString().trim(" ").split("\n");
-      let jsonData: { error: Array<string> | []; output: string } = JSON.parse(
-        x[x.length - 1].toString()
-      );
-      let errOut: errList = {
-        problems: [],
-        errCount: 0,
-        warnCount: 0,
-        infoCount: 0,
-      };
-      if (jsonData.error.length > 0) {
-        errOut.errCount = jsonData.error.length;
-        errOut.problems = jsonData.error;
-      }
-      resolve([errOut, jsonData.output]);
-    });
-  });
-}
+// function compile(codeIn: string): Promise<compileOutType> {
+//   // console.log(codeIn.replace("\n", "\\n"));
+//   compilerProceess.stdin.write(codeIn.replace("\n", "\\n") + "\n");
+//   return new Promise((resolve) => {
+//     compilerProceess.stdout.once("data", (data) => {
+//       let x = data.toString().trim(" ").split("\n");
+//       let jsonData: { error: Array<string> | []; output: string } = JSON.parse(
+//         x[x.length - 1].toString()
+//       );
+//       let errOut: errList = {
+//         problems: [],
+//         errCount: 0,
+//         warnCount: 0,
+//         infoCount: 0,
+//       };
+//       if (jsonData.error.length > 0) {
+//         errOut.errCount = jsonData.error.length;
+//         errOut.problems = jsonData.error;
+//       }
+//       resolve([errOut, jsonData.output]);
+//     });
+//   });
+// }
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-  const settings = await getDocumentSettings(textDocument.uri);
   const text = textDocument.getText();
   let problems: errList = {
     problems: [],
@@ -300,11 +287,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
   // [tempFilePath, problems] = await checkCode(pyCode);
   // unlinkSync(tempFilePath);
   const diagnostics: Diagnostic[] = [];
-  for (
-    var i = 0;
-    i < settings.maxNumberOfProblems && i < problems.problems.length;
-    i++
-  ) {
+  for (var i = 0; i < problems.problems.length; i++) {
     let problem = problems.problems[i];
     const diagnostic: Diagnostic = {
       severity:
@@ -341,20 +324,31 @@ connection.onCompletion(
         position.line,
         position.character
       );
-
       let completions: CompletionItem[] = Object.keys(completionsRaw).map(
         (label): CompletionItem => {
+          console.log();
           switch (completionsRaw[label]["type"]) {
             case "keyword":
               return { label, kind: CompletionItemKind.Keyword };
             case "module":
               return { label, kind: CompletionItemKind.Module };
             case "function":
-              return { label, kind: CompletionItemKind.Function };
+              return {
+                label:
+                  label +
+                  (false ? (completionsRaw[label]["params"]
+                    ? "    (" + completionsRaw[label]["params"] + ")"
+                    : "()") : ''),
+                kind: CompletionItemKind.Function,
+                documentation: completionsRaw[label]["doc"].toString(),
+                insertText: label,
+              };
             case "statement":
               return { label, kind: CompletionItemKind.Variable };
             case "class":
               return { label, kind: CompletionItemKind.Class };
+            case "param":
+              return { label, kind: CompletionItemKind.TypeParameter };
             default:
               return { label, kind: CompletionItemKind.Text };
           }
